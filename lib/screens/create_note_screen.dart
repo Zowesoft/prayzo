@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../utils/colors.dart';
-import '../utils/sample_data.dart';
 
 class CreateNoteScreen extends StatefulWidget {
   const CreateNoteScreen({super.key});
