@@ -60,12 +60,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: BoxDecoration(
-            color: AppColors.primary.withOpacity(0.1),
+            color: AppColors.primaryBlue.withOpacity(0.1),
             borderRadius: BorderRadius.circular(16),
           ),
           child: const Text(
             'Verified Minister',
-            style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600, fontSize: 13),
+            style: TextStyle(color: AppColors.primaryBlue, fontWeight: FontWeight.w600, fontSize: 13),
           ),
         ),
         const SizedBox(height: 12),
@@ -81,7 +81,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            _buildStat('45', 'Prayers', AppColors.primary),
+            _buildStat('45', 'Prayers', AppColors.primaryBlue),
             _buildStat('23', 'Teachings', Colors.green),
             _buildStat('1247', 'Followers', Colors.purple),
           ],
@@ -138,7 +138,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             label,
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: isSelected ? AppColors.primary : Colors.black54,
+              color: isSelected ? AppColors.primaryBlue : Colors.black54,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -163,7 +163,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Widget _buildActivityCard(Map<String, dynamic> item) {
     final isPrayer = item['type'] == 'prayer';
-    final color = isPrayer ? AppColors.primary : Colors.green;
+    final color = isPrayer ? AppColors.primaryBlue : Colors.green;
     final label = isPrayer ? 'prayer' : 'teaching';
     return Container(
       padding: const EdgeInsets.all(16),
