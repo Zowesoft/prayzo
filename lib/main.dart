@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'screens/home_screen.dart';
 import 'screens/create_note_screen.dart';
 import 'screens/bible_screen.dart';
-// import 'screens/profile_screen.dart';
+import 'screens/profile_screen.dart';
 import 'utils/colors.dart';
 import 'widgets/bottom_nav_bar.dart';
 
@@ -57,7 +57,7 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
     HomeScreen(),
     BibleScreen(),
     CreateNoteScreen(),
-    // ProfileScreen(),
+    ProfileScreen(),
   ];
 
   @override
