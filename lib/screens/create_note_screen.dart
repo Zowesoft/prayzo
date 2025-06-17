@@ -5,10 +5,10 @@ class CreateNoteScreen extends StatefulWidget {
   const CreateNoteScreen({super.key});
 
   @override
-  _CreateNoteScreenState createState() => _CreateNoteScreenState();
+  CreateNoteScreenState createState() => CreateNoteScreenState();
 }
 
-class _CreateNoteScreenState extends State<CreateNoteScreen>
+class CreateNoteScreenState extends State<CreateNoteScreen>
     with SingleTickerProviderStateMixin {
   bool isPrayerMode = true;
   final TextEditingController _titleController = TextEditingController();

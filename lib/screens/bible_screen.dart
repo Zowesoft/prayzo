@@ -7,10 +7,10 @@ class BibleScreen extends StatefulWidget {
   const BibleScreen({super.key});
 
   @override
-  _BibleScreenState createState() => _BibleScreenState();
+ BibleScreenState createState() => BibleScreenState();
 }
 
-class _BibleScreenState extends State<BibleScreen> with TickerProviderStateMixin {
+class BibleScreenState extends State<BibleScreen> with TickerProviderStateMixin {
   final TextEditingController _searchController = TextEditingController();
   late TabController _tabController;
   List<String> bookmarkedVerses = [];
@@ -109,7 +109,7 @@ class _BibleScreenState extends State<BibleScreen> with TickerProviderStateMixin
             padding: EdgeInsets.all(20),
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [AppColors.primaryBlue, AppColors.primaryBlue.withOpacity(0.8)],
+                colors: [AppColors.primaryBlue, AppColors.primaryBlue.withValues(alpha: 0.8)],
               ),
               borderRadius: BorderRadius.circular(16),
             ),
@@ -130,7 +130,7 @@ class _BibleScreenState extends State<BibleScreen> with TickerProviderStateMixin
                     Container(
                       padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
+                        color: Colors.white.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
@@ -159,7 +159,7 @@ class _BibleScreenState extends State<BibleScreen> with TickerProviderStateMixin
                     Text(
                       'Philippians 4:13',
                       style: TextStyle(
-                        color: Colors.white.withOpacity(0.9),
+                        color: Colors.white.withValues(alpha: 0.9),
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
                       ),

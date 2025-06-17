@@ -14,10 +14,10 @@ class PrayerCard extends StatefulWidget {
   });
 
   @override
-  _PrayerCardState createState() => _PrayerCardState();
+  PrayerCardState createState() => PrayerCardState();
 }
 
-class _PrayerCardState extends State<PrayerCard>
+class PrayerCardState extends State<PrayerCard>
     with SingleTickerProviderStateMixin {
   bool isLiked = false;
   late AnimationController _likeController;
@@ -72,7 +72,7 @@ class _PrayerCardState extends State<PrayerCard>
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 10,
             offset: Offset(0, 2),
           ),

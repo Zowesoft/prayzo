@@ -10,7 +10,7 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  int _currentTab = 3;
+  final int _currentTab = 3;
   int _selectedTab = 0;
 
   final List<Map<String, dynamic>> _activity = [
@@ -60,7 +60,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: BoxDecoration(
-            color: AppColors.primaryBlue.withOpacity(0.1),
+            color: AppColors.primaryBlue.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(16),
           ),
           child: const Text(
@@ -172,7 +172,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 6,
             offset: const Offset(0, 2),
           ),
@@ -186,7 +186,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
+                  color: color.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
@@ -268,12 +268,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: CustomBottomNavBar(
-        currentIndex: _currentTab,
-        onTap: (index) {
-          // You can add navigation logic here
-        },
-      ),
+
     );
   }
 }

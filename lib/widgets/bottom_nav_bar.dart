@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:prayzo/screens/create_note_screen.dart';
 import '../utils/colors.dart';
 
 class CustomBottomNavBar extends StatelessWidget {
@@ -18,7 +19,7 @@ class CustomBottomNavBar extends StatelessWidget {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 10,
             offset: Offset(0, -2),
           ),
@@ -37,7 +38,7 @@ class CustomBottomNavBar extends StatelessWidget {
                 'Bible',
                 1,
               ),
-              _buildCreateButton(),
+              _buildCreateButton(context),
               _buildNavItem(Icons.note_outlined, Icons.note, 'Notes', 2),
               _buildNavItem(Icons.person_outline, Icons.person, 'Profile', 3),
             ],
@@ -88,9 +89,13 @@ class CustomBottomNavBar extends StatelessWidget {
     );
   }
 
-  Widget _buildCreateButton() {
+  Widget _buildCreateButton(BuildContext context) {
     return GestureDetector(
-      onTap: () => onTap(2),
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => CreateNoteScreen()),
+        );
+      },
       child: Container(
         width: 48,
         height: 48,
@@ -99,7 +104,7 @@ class CustomBottomNavBar extends StatelessWidget {
           shape: BoxShape.circle,
           boxShadow: [
             BoxShadow(
-              color: AppColors.primaryBlue.withOpacity(0.3),
+              color: AppColors.primaryBlue.withAlpha((0.3 * 255).toInt()),
               blurRadius: 8,
               offset: Offset(0, 2),
             ),

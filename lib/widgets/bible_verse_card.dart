@@ -15,10 +15,10 @@ class BibleVerseCard extends StatefulWidget {
   });
 
   @override
-  _BibleVerseCardState createState() => _BibleVerseCardState();
+  BibleVerseCardState createState() => BibleVerseCardState();
 }
 
-class _BibleVerseCardState extends State<BibleVerseCard>
+class BibleVerseCardState extends State<BibleVerseCard>
     with SingleTickerProviderStateMixin {
   late AnimationController _bookmarkController;
   late Animation<double> _bookmarkAnimation;
@@ -60,7 +60,7 @@ class _BibleVerseCardState extends State<BibleVerseCard>
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 8,
             offset: Offset(0, 2),
           ),

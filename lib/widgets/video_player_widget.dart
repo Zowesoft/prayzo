@@ -16,10 +16,10 @@ class VideoPlayerWidget extends StatefulWidget {
   });
 
   @override
-  _VideoPlayerWidgetState createState() => _VideoPlayerWidgetState();
+  VideoPlayerWidgetState createState() => VideoPlayerWidgetState();
 }
 
-class _VideoPlayerWidgetState extends State<VideoPlayerWidget>
+class VideoPlayerWidgetState extends State<VideoPlayerWidget>
     with TickerProviderStateMixin {
   bool isPlaying = false;
   late AnimationController _playButtonController;
@@ -74,7 +74,7 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget>
           Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
-              color: Colors.black.withOpacity(0.3),
+              color: Colors.black.withValues(alpha: 0.3),
             ),
           ),
           
@@ -110,11 +110,11 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget>
                   width: 60,
                   height: 60,
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.9),
+                    color: Colors.white.withValues(alpha: 0.9),
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.2),
+                        color: Colors.black.withValues(alpha: 0.2),
                         blurRadius: 8,
                         offset: Offset(0, 2),
                       ),
@@ -147,7 +147,7 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget>
                   end: Alignment.bottomCenter,
                   colors: [
                     Colors.transparent,
-                    Colors.black.withOpacity(0.7),
+                    Colors.black.withValues(alpha: 0.7),
                   ],
                 ),
               ),
@@ -177,7 +177,7 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget>
                   Text(
                     widget.author,
                     style: TextStyle(
-                      color: Colors.white.withOpacity(0.8),
+                      color: Colors.white.withValues(alpha: 0.8),
                       fontSize: 14,
                     ),
                   ),

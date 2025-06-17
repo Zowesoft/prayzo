@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'screens/home_screen.dart';
-import 'screens/create_note_screen.dart';
+import 'screens/notes_screen.dart';
 import 'screens/bible_screen.dart';
 import 'screens/profile_screen.dart';
 import 'utils/colors.dart';
@@ -45,10 +45,10 @@ class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
 
   @override
-  _MainScreenState createState() => _MainScreenState();
+  MainScreenState createState() => MainScreenState();
 }
 
-class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
+class MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
   int _currentIndex = 0;
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
@@ -56,7 +56,7 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
   final List<Widget> _screens = [
     HomeScreen(),
     BibleScreen(),
-    CreateNoteScreen(),
+    NotesScreen(),
     ProfileScreen(),
   ];
 
