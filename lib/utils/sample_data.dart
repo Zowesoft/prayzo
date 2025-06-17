@@ -49,28 +49,24 @@ class SampleData {
 
   static List<BibleVerse> bibleVerses = [
     BibleVerse(
-      reference: 'Philippians 4:13',
       text: 'I can do all things through Christ who strengthens me.',
       book: 'Philippians',
       chapter: 4,
       verse: 13,
     ),
     BibleVerse(
-      reference: 'John 3:16',
       text: 'For God so loved the world...',
       book: 'John',
       chapter: 3,
       verse: 16,
     ),
     BibleVerse(
-      reference: 'Romans 8:28',
       text: 'And we know that in all things...',
       book: 'Romans',
       chapter: 8,
       verse: 28,
     ),
     BibleVerse(
-      reference: 'Jeremiah 29:11',
       text: 'For I know the plans I have for you...',
       book: 'Jeremiah',
       chapter: 29,
@@ -165,42 +161,36 @@ class SampleData {
 
   static List<BibleVerse> psalms23 = [
     BibleVerse(
-      reference: 'Psalms 23:1',
       text: 'The Lord is my shepherd; I shall not want.',
       book: 'Psalms',
       chapter: 23,
       verse: 1,
     ),
     BibleVerse(
-      reference: 'Psalms 23:2',
       text: 'He makes me lie down in green pastures. He leads me beside still waters.',
       book: 'Psalms',
       chapter: 23,
       verse: 2,
     ),
     BibleVerse(
-      reference: 'Psalms 23:3',
       text: 'He restores my soul. He leads me in paths of righteousness for his name\'s sake.',
       book: 'Psalms',
       chapter: 23,
       verse: 3,
     ),
     BibleVerse(
-      reference: 'Psalms 23:4',
       text: 'Even though I walk through the valley of the shadow of death, I will fear no evil, for you are with me; your rod and your staff, they comfort me.',
       book: 'Psalms',
       chapter: 23,
       verse: 4,
     ),
     BibleVerse(
-      reference: 'Psalms 23:5',
       text: 'You prepare a table before me in the presence of my enemies; you anoint my head with oil; my cup overflows.',
       book: 'Psalms',
       chapter: 23,
       verse: 5,
     ),
     BibleVerse(
-      reference: 'Psalms 23:6',
       text: 'Surely goodness and mercy shall follow me all the days of my life, and I shall dwell in the house of the Lord forever.',
       book: 'Psalms',
       chapter: 23,
@@ -210,21 +200,18 @@ class SampleData {
 
   static List<BibleVerse> bookmarkedVerses = [
     BibleVerse(
-      reference: 'John 3:16',
       text: 'For God so loved the world...',
       book: 'John',
       chapter: 3,
       verse: 16,
     ),
     BibleVerse(
-      reference: 'Romans 8:28',
       text: 'And we know that in all things...',
       book: 'Romans',
       chapter: 8,
       verse: 28,
     ),
     BibleVerse(
-      reference: 'Jeremiah 29:11',
       text: 'For I know the plans I have for you...',
       book: 'Jeremiah',
       chapter: 29,
