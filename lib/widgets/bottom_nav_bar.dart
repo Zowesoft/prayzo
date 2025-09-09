@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:prayzo/screens/create_note_screen.dart';
+import 'package:prayoo/screens/create_note_screen.dart';
 import '../utils/colors.dart';
 
 class CustomBottomNavBar extends StatelessWidget {
