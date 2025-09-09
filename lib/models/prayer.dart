@@ -28,4 +28,24 @@ class Prayer {
     this.isLive = false,
     required this.authorAvatar,
   });
+
+  factory Prayer.fromFirestore(String id, Map<String, dynamic> data) {
+    return Prayer(
+      id: id,
+      title: data['title']?.toString() ?? '',
+      author: data['authorName']?.toString() ?? '',
+      authorRole: data['authorRole']?.toString() ?? '',
+      content: data['content']?.toString() ?? '',
+      scriptureReferences: (data['scriptures'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? const [],
+      tags: (data['tags'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? const [],
+      likes: (data['likesCount'] is int) ? data['likesCount'] as int : 0,
+      comments: (data['commentsCount'] is int) ? data['commentsCount'] as int : 0,
+      createdAt: data['createdAt'] != null && data['createdAt'].millisecondsSinceEpoch != null
+          ? DateTime.fromMillisecondsSinceEpoch(data['createdAt'].millisecondsSinceEpoch)
+          : DateTime.now(),
+      videoUrl: data['videoUrl']?.toString(),
+      isLive: data['isLive'] ?? false,
+      authorAvatar: data['authorPhotoUrl']?.toString() ?? '',
+    );
+  }
 }
