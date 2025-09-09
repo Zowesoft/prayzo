@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:prayoo/providers/auth_provider.dart';
 import 'package:prayoo/providers/connection_provider.dart';
 import 'package:prayoo/providers/session_provider.dart';
@@ -16,6 +17,7 @@ import 'services/supabase_service.dart';
 import 'services/notification_service.dart';
 import 'config/env.dart';
 import 'screens/notifications_screen.dart';
+import 'package:flutter_quill/flutter_quill.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -40,6 +42,15 @@ class PrayooApp extends StatelessWidget {
         ],
         child: MaterialApp(
           title: 'Prayoo',
+          localizationsDelegates: const [
+            GlobalMaterialLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            FlutterQuillLocalizations.delegate,
+          ],
+          supportedLocales: const [
+            Locale('en'),
+          ],
           theme: ThemeData(
             primaryColor: AppColors.primaryBlue,
             colorScheme: ColorScheme.fromSeed(

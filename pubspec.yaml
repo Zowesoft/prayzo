@@ -41,6 +41,7 @@ dependencies:
   provider: ^6.1.1
   image_picker: ^1.0.7
   image_picker_for_web: ^3.0.2
+  flutter_quill: ^11.4.2
   # State Management
   riverpod: ^2.4.9
   
@@ -58,7 +59,7 @@ dependencies:
   
   # Utilities
   uuid: ^4.2.1
-  intl: ^0.19.0
+  intl: ^0.20.2
 
   connectivity_plus: ^5.0.2
 

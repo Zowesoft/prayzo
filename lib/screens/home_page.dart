@@ -471,7 +471,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       title: data['title']?.toString() ?? '',
       author: '',
       authorRole: '',
-      content: data['content']?.toString() ?? '',
+      content: (data['description'] ?? data['content'])?.toString() ?? '',
       scriptureReferences: (data['scriptures'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? const [],
       tags: (data['tags'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? const [],
       likes: (data['likes_count'] as int?) ?? 0,
@@ -500,7 +500,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         return ListTile(
           title: Text(p['title']?.toString() ?? 'Untitled'),
           subtitle: Text(
-            (p['content']?.toString() ?? '').trim(),
+            ((p['description'] ?? p['content'])?.toString() ?? '').trim(),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),
@@ -554,7 +554,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
+            color: Colors.grey.withValues(alpha: 0.1),
             spreadRadius: 1,
             blurRadius: 4,
             offset: Offset(0, 2),
