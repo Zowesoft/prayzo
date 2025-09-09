@@ -6,6 +6,7 @@ import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 import 'package:prayoo/widgets/participant_options_bottom_sheet.dart';
 import 'package:prayoo/services/supabase_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter_quill/flutter_quill.dart' as quill;
 
 class SessionPage extends StatefulWidget {
   final PrayerSession session;
@@ -52,6 +53,41 @@ class _SessionPageState extends State<SessionPage> {
             _remoteUsers.remove(remoteUid);
           });
         },
+      ),
+    );
+  }
+
+  Widget _buildPointRichContent(PrayerPoint point) {
+    // If we have a stored Quill delta, render rich content; otherwise show plain text
+    final deltaJson = point.contentDelta;
+    if (deltaJson != null) {
+      try {
+        final doc = quill.Document.fromJson(deltaJson as List);
+        final controller = quill.QuillController(document: doc, selection: const TextSelection.collapsed(offset: 0));
+        return IgnorePointer(
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 800),
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: quill.QuillEditor.basic(
+              controller: controller,
+              config: const quill.QuillEditorConfig(
+                placeholder: '',
+              ),
+            ),
+          ),
+        );
+      } catch (_) {
+        // Fallback to plain text if parsing fails
+      }
+    }
+    return Text(
+      point.content,
+      textAlign: TextAlign.center,
+      style: const TextStyle(
+        color: Colors.white,
+        fontSize: 24,
+        fontWeight: FontWeight.w300,
+        height: 1.4,
       ),
     );
   }
@@ -177,6 +213,19 @@ class _SessionPageState extends State<SessionPage> {
   }
   
   Widget _buildPrayerPointsDisplay(PrayerSession session) {
+    if (session.prayerPoints.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32.0),
+          child: Text(
+            'No prayer points added yet',
+            style: TextStyle(color: Colors.white70, fontSize: 16),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      );
+    }
+    
     final currentPoint = session.prayerPoints.firstWhere(
       (point) => point.isActive,
       orElse: () => session.prayerPoints.first,
@@ -202,22 +251,13 @@ class _SessionPageState extends State<SessionPage> {
             ),
           ),
           SizedBox(height: 16),
-          Text(
-            currentPoint.content,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 24,
-              fontWeight: FontWeight.w300,
-              height: 1.4,
-            ),
-          ),
+          _buildPointRichContent(currentPoint),
           SizedBox(height: 32),
           if (currentPoint.assignedTo != null)
             Container(
               padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
-                color: Colors.blue.withOpacity(0.2),
+                color: Colors.blue.withValues(alpha:0.2),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(

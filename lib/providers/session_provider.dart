@@ -92,6 +92,7 @@ class SessionProvider with ChangeNotifier {
     required DateTime scheduledTime,
     required List<String> prayerPoints,
     List<List<String>> prayerPointScriptures = const [],
+    List<dynamic> prayerPointDeltas = const [], // Quill Delta JSON
   }) async {
     try {
       final userId = SupabaseService.client.auth.currentUser!.id;
@@ -122,6 +123,10 @@ class SessionProvider with ChangeNotifier {
                 'scriptures': (entry.key < prayerPointScriptures.length)
                     ? prayerPointScriptures[entry.key]
                     : <String>[],
+                // Save rich content delta if provided
+                'content_delta': (entry.key < prayerPointDeltas.length)
+                    ? prayerPointDeltas[entry.key]
+                    : null,
               })
           .toList();
       if (pointsPayload.isNotEmpty) {
@@ -257,6 +262,7 @@ class PrayerPoint {
   final int order;
   final String? assignedTo;
   final bool isActive;
+  final dynamic contentDelta; // quill delta json
 
   PrayerPoint({
     required this.id,
@@ -264,6 +270,7 @@ class PrayerPoint {
     required this.order,
     this.assignedTo,
     required this.isActive,
+    this.contentDelta,
   });
 
   factory PrayerPoint.fromMap(Map<String, dynamic> map) {
@@ -273,6 +280,7 @@ class PrayerPoint {
       order: map['order'] ?? 0,
       assignedTo: map['assignedTo'],
       isActive: map['isActive'] ?? false,
+      contentDelta: map['content_delta'],
     );
   }
 }

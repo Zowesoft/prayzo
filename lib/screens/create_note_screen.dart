@@ -3,8 +3,11 @@ import '../utils/colors.dart';
 import 'package:provider/provider.dart';
 import 'package:prayoo/providers/auth_provider.dart';
 import 'package:prayoo/services/prayer_service.dart';
-import 'package:prayoo/providers/session_provider.dart';
+// import 'package:prayoo/providers/session_provider.dart';
 import 'package:intl/intl.dart';
+import '../repository/bible_repository.dart';
+import '../models/bible_verse.dart';
+import 'package:flutter_quill/flutter_quill.dart';
 
 class CreateNoteScreen extends StatefulWidget {
   const CreateNoteScreen({super.key});
@@ -18,15 +21,18 @@ class CreateNoteScreenState extends State<CreateNoteScreen>
   bool isPrayerMode = true;
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _contentController = TextEditingController();
-  final TextEditingController _scriptureController = TextEditingController();
   late AnimationController _toggleController;
   late Animation<double> _toggleAnimation;
-  // Session creation (Prayer mode)
-  bool createAsSession = false;
+  // Prayer points for prayers
   DateTime _scheduledTime = DateTime.now().add(const Duration(hours: 1));
-  final List<TextEditingController> _pointControllers = [TextEditingController()];
-  final List<TextEditingController> _pointScripturesControllers = [TextEditingController()];
-  
+  final List<TextEditingController> _pointControllers = [
+    TextEditingController()
+  ];
+  final List<TextEditingController> _pointScripturesControllers = [
+    TextEditingController()
+  ];
+  final List<QuillController> _pointEditors = [QuillController.basic()];
+
   List<String> selectedTags = [];
   List<String> availableTags = [
     'Gratitude',
@@ -45,7 +51,7 @@ class CreateNoteScreenState extends State<CreateNoteScreen>
     'Blessing',
     'Unity'
   ];
-  
+
   // Different tags for Teaching mode
   List<String> teachingTags = [
     'Bible Study',
@@ -57,9 +63,9 @@ class CreateNoteScreenState extends State<CreateNoteScreen>
     'Faith',
     'Hope'
   ];
-  
+
   bool isPrivate = false;
-  bool showScriptureField = false;
+  final BibleRepository _bibleRepo = BibleRepository();
 
   @override
   void initState() {
@@ -81,9 +87,12 @@ class CreateNoteScreenState extends State<CreateNoteScreen>
   void dispose() {
     _titleController.dispose();
     _contentController.dispose();
-    _scriptureController.dispose();
-    for (final c in _pointControllers) { c.dispose(); }
-    for (final c in _pointScripturesControllers) { c.dispose(); }
+    for (final c in _pointControllers) {
+      c.dispose();
+    }
+    for (final c in _pointScripturesControllers) {
+      c.dispose();
+    }
     _toggleController.dispose();
     super.dispose();
   }
@@ -92,7 +101,6 @@ class CreateNoteScreenState extends State<CreateNoteScreen>
     setState(() {
       isPrayerMode = !isPrayerMode;
       selectedTags.clear();
-      showScriptureField = false;
       if (isPrayerMode) {
         _toggleController.reverse();
       } else {
@@ -111,24 +119,152 @@ class CreateNoteScreenState extends State<CreateNoteScreen>
     });
   }
 
-  void _addScriptureReference() {
-    setState(() {
-      showScriptureField = !showScriptureField;
-    });
+  Future<String?> _openScripturePicker() async {
+    int? selectedBookId;
+    int? selectedChapter;
+    int? selectedVerse;
+
+    final books = await _bibleRepo.getBookIds();
+
+    return await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setModalState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(ctx).viewInsets.bottom + 16,
+                left: 16,
+                right: 16,
+                top: 16,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Text('Pick Scripture',
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<int>(
+                    value: selectedBookId,
+                    decoration: const InputDecoration(
+                      labelText: 'Book',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: books
+                        .map((b) => DropdownMenuItem<int>(
+                              value: b,
+                              child: Text(bibleBookNames[b]),
+                            ))
+                        .toList(),
+                    onChanged: (v) {
+                      setModalState(() {
+                        selectedBookId = v;
+                        selectedChapter = null;
+                        selectedVerse = null;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  FutureBuilder<List<int>>(
+                    future: selectedBookId == null
+                        ? Future.value(const <int>[])
+                        : _bibleRepo.getChaptersForBook(selectedBookId!),
+                    builder: (context, snap) {
+                      final chapters = snap.data ?? const <int>[];
+                      return DropdownButtonFormField<int>(
+                        value: chapters.contains(selectedChapter)
+                            ? selectedChapter
+                            : null,
+                        decoration: const InputDecoration(
+                          labelText: 'Chapter',
+                          border: OutlineInputBorder(),
+                        ),
+                        items: chapters
+                            .map((c) => DropdownMenuItem<int>(
+                                  value: c,
+                                  child: Text(c.toString()),
+                                ))
+                            .toList(),
+                        onChanged: (v) {
+                          setModalState(() {
+                            selectedChapter = v;
+                            selectedVerse = null;
+                          });
+                        },
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  FutureBuilder<List<int>>(
+                    future: (selectedBookId == null || selectedChapter == null)
+                        ? Future.value(const <int>[])
+                        : _bibleRepo.getVersesForBookChapter(
+                            selectedBookId!, selectedChapter!),
+                    builder: (context, snap) {
+                      final verses = snap.data ?? const <int>[];
+                      return DropdownButtonFormField<int>(
+                        value: verses.contains(selectedVerse)
+                            ? selectedVerse
+                            : null,
+                        decoration: const InputDecoration(
+                          labelText: 'Verse',
+                          border: OutlineInputBorder(),
+                        ),
+                        items: verses
+                            .map((v) => DropdownMenuItem<int>(
+                                  value: v,
+                                  child: Text(v.toString()),
+                                ))
+                            .toList(),
+                        onChanged: (v) =>
+                            setModalState(() => selectedVerse = v),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () {
+                      if (selectedBookId != null &&
+                          selectedChapter != null &&
+                          selectedVerse != null) {
+                        final ref =
+                            '${bibleBookNames[selectedBookId!]} $selectedChapter:$selectedVerse';
+                        Navigator.pop(ctx, ref);
+                      } else {
+                        Navigator.pop(ctx, null);
+                      }
+                    },
+                    child: const Text('Add Reference'),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   void _addPrayerPointField() {
     setState(() {
       _pointControllers.add(TextEditingController());
       _pointScripturesControllers.add(TextEditingController());
+      _pointEditors.add(QuillController.basic());
     });
   }
 
   void _removePrayerPointField(int index) {
-    if (_pointControllers.length == 1) return;
+    if (_pointEditors.length == 1) return;
     setState(() {
       _pointControllers.removeAt(index).dispose();
       _pointScripturesControllers.removeAt(index).dispose();
+      _pointEditors.removeAt(index);
     });
   }
 
@@ -146,7 +282,8 @@ class CreateNoteScreenState extends State<CreateNoteScreen>
     );
     if (time == null) return;
     setState(() {
-      _scheduledTime = DateTime(date.year, date.month, date.day, time.hour, time.minute);
+      _scheduledTime =
+          DateTime(date.year, date.month, date.day, time.hour, time.minute);
     });
   }
 
@@ -171,74 +308,22 @@ class CreateNoteScreenState extends State<CreateNoteScreen>
       return;
     }
     final auth = context.read<AuthProvider>();
-    final scriptures = _scriptureController.text
-        .split(',')
-        .map((e) => e.trim())
-        .where((e) => e.isNotEmpty)
+    final List<String> scriptures = const [];
+
+    // Unified flow: create a prayer with optional prayer points (rich content)
+    final points = _pointEditors
+        .map((c) => c.document.toPlainText().trim())
+        .where((t) => t.isNotEmpty)
+        .toList();
+    final deltas = _pointEditors.map((c) => c.document.toDelta().toJson()).toList();
+    final pointScriptures = _pointScripturesControllers
+        .map((c) => c.text
+            .split(',')
+            .map((e) => e.trim())
+            .where((e) => e.isNotEmpty)
+            .toList())
         .toList();
 
-    // When creating a Session (Prayer mode only)
-    if (isPrayerMode && createAsSession) {
-      final points = _pointControllers.map((c) => c.text.trim()).where((t) => t.isNotEmpty).toList();
-      if (points.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Add at least one prayer point'), backgroundColor: AppColors.error),
-        );
-        return;
-      }
-
-      final pointScriptures = _pointScripturesControllers
-          .map((c) => c.text
-              .split(',')
-              .map((e) => e.trim())
-              .where((e) => e.isNotEmpty)
-              .toList())
-          .toList();
-
-      if (auth.isLoggedIn) {
-        // Create Firestore session
-        context
-            .read<SessionProvider>()
-            .createPrayerSession(
-              title: _titleController.text.trim(),
-              description: _contentController.text.trim(),
-              scheduledTime: _scheduledTime,
-              prayerPoints: points,
-              prayerPointScriptures: pointScriptures,
-            )
-            .then((_) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Prayer session created!')),
-          );
-          Navigator.pop(context);
-        }).catchError((e) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to create session: $e'), backgroundColor: AppColors.error),
-          );
-        });
-        return;
-      } else {
-        // Save locally as personal prayer if not logged in
-        final service = PrayerService();
-        service
-            .createPrayer(
-              title: _titleController.text.trim(),
-              content: _contentController.text.trim(),
-              scriptures: scriptures,
-              tags: selectedTags,
-              isPrivate: isPrivate,
-            )
-            .then((_) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Saved locally as a personal prayer')),
-          );
-          Navigator.pop(context);
-        });
-        return;
-      }
-    }
-
-    // Default: publish a single prayer/teaching
     final service = PrayerService();
     service
         .createPrayer(
@@ -247,6 +332,9 @@ class CreateNoteScreenState extends State<CreateNoteScreen>
           scriptures: scriptures,
           tags: selectedTags,
           isPrivate: isPrivate,
+          prayerPoints: points,
+          prayerPointScriptures: pointScriptures,
+          prayerPointDeltas: deltas,
         )
         .then((_) {
       final savedMsg = auth.isLoggedIn
@@ -311,34 +399,24 @@ class CreateNoteScreenState extends State<CreateNoteScreen>
             // Mode Toggle
             _buildModeToggle(),
             SizedBox(height: 24),
-            
+
             // Title Field
             _buildTitleField(),
             SizedBox(height: 20),
-            
+
             // Content Editor
             _buildContentEditor(),
             SizedBox(height: 20),
-            if (isPrayerMode) _buildCreateSessionToggle(),
-            if (isPrayerMode && createAsSession) ...[
-              SizedBox(height: 12),
-              _buildSchedulePicker(),
-              SizedBox(height: 12),
+            if (isPrayerMode) ...[
               _buildPrayerPointsEditor(),
             ],
-            
-            // Scripture Reference
-            if (showScriptureField) _buildScriptureField(),
-            if (showScriptureField) SizedBox(height: 20),
-            
-            // Add Scripture Reference Button
-            _buildAddScriptureButton(),
+
             SizedBox(height: 24),
-            
+
             // Tags Section
             _buildTagsSection(),
             SizedBox(height: 24),
-            
+
             // Privacy Settings
             _buildPrivacySettings(),
             SizedBox(height: 40),
@@ -364,7 +442,8 @@ class CreateNoteScreenState extends State<CreateNoteScreen>
               child: Container(
                 padding: EdgeInsets.symmetric(vertical: 12),
                 decoration: BoxDecoration(
-                  color: isPrayerMode ? AppColors.primaryBlue : Colors.transparent,
+                  color:
+                      isPrayerMode ? AppColors.primaryBlue : Colors.transparent,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
@@ -387,7 +466,9 @@ class CreateNoteScreenState extends State<CreateNoteScreen>
               child: Container(
                 padding: EdgeInsets.symmetric(vertical: 12),
                 decoration: BoxDecoration(
-                  color: !isPrayerMode ? AppColors.primaryGreen : Colors.transparent,
+                  color: !isPrayerMode
+                      ? AppColors.primaryGreen
+                      : Colors.transparent,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
@@ -430,9 +511,9 @@ class CreateNoteScreenState extends State<CreateNoteScreen>
             controller: _titleController,
             style: TextStyle(color: AppColors.darkGrey),
             decoration: InputDecoration(
-              hintText: isPrayerMode 
-                ? 'Enter prayer title...' 
-                : 'Enter teaching title...',
+              hintText: isPrayerMode
+                  ? 'Enter prayer title...'
+                  : 'Enter teaching title...',
               hintStyle: TextStyle(color: AppColors.grey),
               border: InputBorder.none,
               contentPadding: EdgeInsets.all(16),
@@ -444,33 +525,7 @@ class CreateNoteScreenState extends State<CreateNoteScreen>
   }
 
   Widget _buildCreateSessionToggle() {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.lightGrey),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
-                Text('Create as Session', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-                SizedBox(height: 4),
-                Text('Schedule this prayer and add multiple prayer points', style: TextStyle(color: Colors.grey)),
-              ],
-            ),
-          ),
-          Switch(
-            value: createAsSession,
-            onChanged: (v) => setState(() => createAsSession = v),
-            activeColor: AppColors.primaryBlue,
-          )
-        ],
-      ),
-    );
+    return const SizedBox.shrink();
   }
 
   Widget _buildSchedulePicker() {
@@ -493,7 +548,8 @@ class CreateNoteScreenState extends State<CreateNoteScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Prayer Points', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+        const Text('Prayer Points',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
         const SizedBox(height: 8),
         ...List.generate(_pointControllers.length, (index) {
           return Container(
@@ -510,30 +566,88 @@ class CreateNoteScreenState extends State<CreateNoteScreen>
                 Row(
                   children: [
                     Expanded(
-                      child: TextField(
-                        controller: _pointControllers[index],
-                        decoration: InputDecoration(
-                          labelText: 'Prayer Point ${index + 1}',
-                          border: const OutlineInputBorder(),
-                        ),
+                      child: Column(
+                        children: [
+                          QuillSimpleToolbar(controller: _pointEditors[index]),
+                          const SizedBox(height: 8),
+                          Container(
+                            height: 180,
+                            decoration: BoxDecoration(
+                              color: AppColors.white,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: AppColors.lightGrey),
+                            ),
+                            child: Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 8.0),
+                              child: QuillEditor.basic(
+                                controller: _pointEditors[index],
+                                config: const QuillEditorConfig(
+                                  placeholder: 'Write prayer point...',
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                     const SizedBox(width: 8),
-                    if (_pointControllers.length > 1)
+                    if (_pointEditors.length > 1)
                       IconButton(
-                        icon: const Icon(Icons.remove_circle, color: Colors.red),
+                        icon:
+                            const Icon(Icons.remove_circle, color: Colors.red),
                         onPressed: () => _removePrayerPointField(index),
                       ),
                   ],
                 ),
                 const SizedBox(height: 8),
-                TextField(
-                  controller: _pointScripturesControllers[index],
-                  decoration: const InputDecoration(
-                    labelText: 'Scriptures (comma separated)',
-                    hintText: 'e.g., John 3:16, Psalm 23:1-6',
-                    border: OutlineInputBorder(),
-                  ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Scripture References',
+                        style: TextStyle(fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 8),
+                    Builder(builder: (context) {
+                      final tokens = _pointScripturesControllers[index]
+                          .text
+                          .split(',')
+                          .map((e) => e.trim())
+                          .where((e) => e.isNotEmpty)
+                          .toList();
+                      return Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          ...tokens.map((t) => Chip(
+                                label: Text(t),
+                                onDeleted: () {
+                                  setState(() {
+                                    final list = tokens.toList();
+                                    list.remove(t);
+                                    _pointScripturesControllers[index].text =
+                                        list.join(', ');
+                                  });
+                                },
+                              )),
+                          ActionChip(
+                            avatar: const Icon(Icons.add, size: 18),
+                            label: const Text('Pick Scripture'),
+                            onPressed: () async {
+                              final picked = await _openScripturePicker();
+                              if (picked != null && picked.isNotEmpty) {
+                                setState(() {
+                                  final list = tokens.toList();
+                                  list.add(picked);
+                                  _pointScripturesControllers[index].text =
+                                      list.join(', ');
+                                });
+                              }
+                            },
+                          ),
+                        ],
+                      );
+                    }),
+                  ],
                 ),
               ],
             ),
@@ -616,9 +730,9 @@ class CreateNoteScreenState extends State<CreateNoteScreen>
             expands: true,
             style: TextStyle(color: AppColors.darkGrey),
             decoration: InputDecoration(
-              hintText: isPrayerMode 
-                ? 'Share your prayer with the community...' 
-                : 'Write your teaching content here...',
+              hintText: isPrayerMode
+                  ? 'Share your prayer with the community...'
+                  : 'Write your teaching content here...',
               hintStyle: TextStyle(color: AppColors.grey),
               border: InputBorder.none,
               contentPadding: EdgeInsets.all(16),
@@ -626,76 +740,12 @@ class CreateNoteScreenState extends State<CreateNoteScreen>
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildScriptureField() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Scripture Reference',
-          style: TextStyle(
-            color: AppColors.darkGrey,
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        SizedBox(height: 8),
-        Container(
-          decoration: BoxDecoration(
-            color: AppColors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.lightGrey),
-          ),
-          child: TextField(
-            controller: _scriptureController,
-            style: TextStyle(color: AppColors.darkGrey),
-            decoration: InputDecoration(
-              hintText: 'e.g., John 3:16, Psalm 23:1-6',
-              hintStyle: TextStyle(color: AppColors.grey),
-              border: InputBorder.none,
-              contentPadding: EdgeInsets.all(16),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildAddScriptureButton() {
-    return GestureDetector(
-      onTap: _addScriptureReference,
-      child: Container(
-        padding: EdgeInsets.symmetric(vertical: 12),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              showScriptureField ? Icons.remove : Icons.add,
-              color: AppColors.primaryBlue,
-              size: 20,
-            ),
-            SizedBox(width: 8),
-            Text(
-              showScriptureField 
-                ? 'Remove Scripture Reference' 
-                : 'Add Scripture Reference',
-              style: TextStyle(
-                color: AppColors.primaryBlue,
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 
   Widget _buildTagsSection() {
     List<String> currentTags = isPrayerMode ? availableTags : teachingTags;
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -718,22 +768,24 @@ class CreateNoteScreenState extends State<CreateNoteScreen>
               child: Container(
                 padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
-                  color: isSelected 
-                    ? (isPrayerMode ? AppColors.primaryBlue : AppColors.primaryGreen)
-                    : AppColors.white,
+                  color: isSelected
+                      ? (isPrayerMode
+                          ? AppColors.primaryBlue
+                          : AppColors.primaryGreen)
+                      : AppColors.white,
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: isSelected 
-                      ? (isPrayerMode ? AppColors.primaryBlue : AppColors.primaryGreen)
-                      : AppColors.lightGrey,
+                    color: isSelected
+                        ? (isPrayerMode
+                            ? AppColors.primaryBlue
+                            : AppColors.primaryGreen)
+                        : AppColors.lightGrey,
                   ),
                 ),
                 child: Text(
                   tag,
                   style: TextStyle(
-                    color: isSelected 
-                      ? Colors.white 
-                      : AppColors.grey,
+                    color: isSelected ? Colors.white : AppColors.grey,
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
                   ),
@@ -782,9 +834,9 @@ class CreateNoteScreenState extends State<CreateNoteScreen>
                     ),
                     SizedBox(height: 4),
                     Text(
-                      isPrayerMode 
-                        ? 'Anyone can see this prayer' 
-                        : 'Anyone can see this teaching',
+                      isPrayerMode
+                          ? 'Anyone can see this prayer'
+                          : 'Anyone can see this teaching',
                       style: TextStyle(
                         color: AppColors.grey,
                         fontSize: 14,
@@ -800,7 +852,9 @@ class CreateNoteScreenState extends State<CreateNoteScreen>
                     isPrivate = !value;
                   });
                 },
-                activeColor: isPrayerMode ? AppColors.primaryBlue : AppColors.primaryGreen,
+                activeColor: isPrayerMode
+                    ? AppColors.primaryBlue
+                    : AppColors.primaryGreen,
               ),
             ],
           ),
