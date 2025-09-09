@@ -38,9 +38,10 @@ dependencies:
   path_provider: ^2.1.5
   path: ^1.9.1
   supabase_flutter: ^2.10.0
-  
-  # State Management
   provider: ^6.1.1
+  image_picker: ^1.0.7
+  image_picker_for_web: ^3.0.2
+  # State Management
   riverpod: ^2.4.9
   
   # Video/Audio Streaming

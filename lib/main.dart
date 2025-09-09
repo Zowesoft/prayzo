@@ -1,43 +1,80 @@
 import 'package:flutter/material.dart';
-import 'screens/home_screen.dart';
+import 'package:prayoo/providers/auth_provider.dart';
+import 'package:prayoo/providers/connection_provider.dart';
+import 'package:prayoo/providers/session_provider.dart';
+import 'package:prayoo/screens/home_page.dart';
+import 'package:prayoo/screens/session_page.dart';
+import 'package:provider/provider.dart';
 import 'screens/notes_screen.dart';
 import 'screens/bible_screen.dart';
 import 'screens/profile_screen.dart';
+import 'screens/login_page.dart';
+import 'screens/prayer_view_page.dart';
 import 'utils/colors.dart';
 import 'widgets/bottom_nav_bar.dart';
+import 'services/supabase_service.dart';
+import 'services/notification_service.dart';
+import 'config/env.dart';
+import 'screens/notifications_screen.dart';
 
-void main() {
-  runApp(PrayZoApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await SupabaseService.initialize(
+    url: AppEnv.supabaseUrl,
+    anonKey: AppEnv.supabaseAnonKey,
+  );
+  await NotificationService.initialize();
+  runApp(PrayooApp());
 }
 
-class PrayZoApp extends StatelessWidget {
-  const PrayZoApp({super.key});
+class PrayooApp extends StatelessWidget {
+  const PrayooApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'PrayZo',
-      theme: ThemeData(
-        primaryColor: AppColors.primaryBlue,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: AppColors.primaryBlue,
-          brightness: Brightness.light,
-        ),
-        fontFamily: 'Roboto',
-        appBarTheme: AppBarTheme(
-          backgroundColor: Colors.white,
-          elevation: 0,
-          titleTextStyle: TextStyle(
-            color: AppColors.primaryBlue,
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
+    return MultiProvider(
+        providers: [
+          ChangeNotifierProvider(create: (_) => AuthProvider()),
+          ChangeNotifierProvider(create: (_) => SessionProvider()),
+          ChangeNotifierProvider(create: (_) => ConnectionProvider()),
+        ],
+        child: MaterialApp(
+          title: 'Prayoo',
+          theme: ThemeData(
+            primaryColor: AppColors.primaryBlue,
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: AppColors.primaryBlue,
+              brightness: Brightness.light,
+            ),
+            fontFamily: 'Roboto',
+            appBarTheme: AppBarTheme(
+              backgroundColor: Colors.white,
+              elevation: 0,
+              titleTextStyle: TextStyle(
+                color: AppColors.primaryBlue,
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
+              iconTheme: IconThemeData(color: AppColors.primaryBlue),
+            ),
           ),
-          iconTheme: IconThemeData(color: AppColors.primaryBlue),
-        ),
-      ),
-      home: MainScreen(),
-      debugShowCheckedModeBanner: false,
-    );
+          home: MainScreen(),
+          routes: {
+            '/home': (context) => HomePage(),
+            '/session': (context) {
+              final args = ModalRoute.of(context)!.settings.arguments as PrayerSession;
+              return SessionPage(session: args);
+            },
+            '/profile': (context) => ProfileScreen(),
+            '/login': (context) => const LoginPage(),
+            '/prayer': (context) {
+              final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+              return PrayerViewPage(prayer: args);
+            },
+            '/notifications': (context) => const NotificationsScreen(),
+          },
+          debugShowCheckedModeBanner: false,
+        ));
   }
 }
 
@@ -54,7 +91,7 @@ class MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
   late Animation<double> _fadeAnimation;
 
   final List<Widget> _screens = [
-    HomeScreen(),
+    HomePage(),
     BibleScreen(),
     NotesScreen(),
     ProfileScreen(),

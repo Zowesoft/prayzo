@@ -20,8 +20,14 @@ class DatabaseHelper {
     String dbPath = join(documentsDirectory.path, '$translation.sqlite');
     // Copy from assets if not exists
     if (!await File(dbPath).exists()) {
-      ByteData data = await rootBundle.load('assets/bibles/$translation.sqlite');
-      List<int> bytes = data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
+      ByteData data;
+      try {
+        data = await rootBundle.load('assets/bibles/$translation.sqlite');
+      } catch (e) {
+        rethrow;
+      }
+      List<int> bytes =
+          data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
       await File(dbPath).writeAsBytes(bytes, flush: true);
     }
     return await openDatabase(dbPath, readOnly: true);
