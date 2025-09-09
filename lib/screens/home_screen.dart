@@ -55,7 +55,7 @@ class HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       backgroundColor: AppColors.lightGrey,
       appBar: AppBar(
-        title: Text('PrayerVerse'),
+        title: Text('Prayoo'),
         actions: [
           Stack(
             children: [

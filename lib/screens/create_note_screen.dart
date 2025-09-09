@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
 import '../utils/colors.dart';
+import 'package:provider/provider.dart';
+import 'package:prayoo/providers/auth_provider.dart';
+import 'package:prayoo/services/prayer_service.dart';
+import 'package:prayoo/providers/session_provider.dart';
+import 'package:intl/intl.dart';
 
 class CreateNoteScreen extends StatefulWidget {
   const CreateNoteScreen({super.key});
@@ -16,6 +21,11 @@ class CreateNoteScreenState extends State<CreateNoteScreen>
   final TextEditingController _scriptureController = TextEditingController();
   late AnimationController _toggleController;
   late Animation<double> _toggleAnimation;
+  // Session creation (Prayer mode)
+  bool createAsSession = false;
+  DateTime _scheduledTime = DateTime.now().add(const Duration(hours: 1));
+  final List<TextEditingController> _pointControllers = [TextEditingController()];
+  final List<TextEditingController> _pointScripturesControllers = [TextEditingController()];
   
   List<String> selectedTags = [];
   List<String> availableTags = [
@@ -72,6 +82,8 @@ class CreateNoteScreenState extends State<CreateNoteScreen>
     _titleController.dispose();
     _contentController.dispose();
     _scriptureController.dispose();
+    for (final c in _pointControllers) { c.dispose(); }
+    for (final c in _pointScripturesControllers) { c.dispose(); }
     _toggleController.dispose();
     super.dispose();
   }
@@ -105,6 +117,39 @@ class CreateNoteScreenState extends State<CreateNoteScreen>
     });
   }
 
+  void _addPrayerPointField() {
+    setState(() {
+      _pointControllers.add(TextEditingController());
+      _pointScripturesControllers.add(TextEditingController());
+    });
+  }
+
+  void _removePrayerPointField(int index) {
+    if (_pointControllers.length == 1) return;
+    setState(() {
+      _pointControllers.removeAt(index).dispose();
+      _pointScripturesControllers.removeAt(index).dispose();
+    });
+  }
+
+  Future<void> _pickScheduledTime() async {
+    final date = await showDatePicker(
+      context: context,
+      initialDate: _scheduledTime,
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+    );
+    if (date == null) return;
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(_scheduledTime),
+    );
+    if (time == null) return;
+    setState(() {
+      _scheduledTime = DateTime(date.year, date.month, date.day, time.hour, time.minute);
+    });
+  }
+
   void _publishContent() {
     if (_titleController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -125,21 +170,103 @@ class CreateNoteScreenState extends State<CreateNoteScreen>
       );
       return;
     }
+    final auth = context.read<AuthProvider>();
+    final scriptures = _scriptureController.text
+        .split(',')
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
 
-    // Here you would typically save the content to your backend
-    // For now, we'll just show a success message and navigate back
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          isPrayerMode 
-            ? 'Prayer published successfully!' 
-            : 'Teaching published successfully!'
+    // When creating a Session (Prayer mode only)
+    if (isPrayerMode && createAsSession) {
+      final points = _pointControllers.map((c) => c.text.trim()).where((t) => t.isNotEmpty).toList();
+      if (points.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Add at least one prayer point'), backgroundColor: AppColors.error),
+        );
+        return;
+      }
+
+      final pointScriptures = _pointScripturesControllers
+          .map((c) => c.text
+              .split(',')
+              .map((e) => e.trim())
+              .where((e) => e.isNotEmpty)
+              .toList())
+          .toList();
+
+      if (auth.isLoggedIn) {
+        // Create Firestore session
+        context
+            .read<SessionProvider>()
+            .createPrayerSession(
+              title: _titleController.text.trim(),
+              description: _contentController.text.trim(),
+              scheduledTime: _scheduledTime,
+              prayerPoints: points,
+              prayerPointScriptures: pointScriptures,
+            )
+            .then((_) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Prayer session created!')),
+          );
+          Navigator.pop(context);
+        }).catchError((e) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to create session: $e'), backgroundColor: AppColors.error),
+          );
+        });
+        return;
+      } else {
+        // Save locally as personal prayer if not logged in
+        final service = PrayerService();
+        service
+            .createPrayer(
+              title: _titleController.text.trim(),
+              content: _contentController.text.trim(),
+              scriptures: scriptures,
+              tags: selectedTags,
+              isPrivate: isPrivate,
+            )
+            .then((_) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Saved locally as a personal prayer')),
+          );
+          Navigator.pop(context);
+        });
+        return;
+      }
+    }
+
+    // Default: publish a single prayer/teaching
+    final service = PrayerService();
+    service
+        .createPrayer(
+          title: _titleController.text.trim(),
+          content: _contentController.text.trim(),
+          scriptures: scriptures,
+          tags: selectedTags,
+          isPrivate: isPrivate,
+        )
+        .then((_) {
+      final savedMsg = auth.isLoggedIn
+          ? (isPrayerMode ? 'Prayer published!' : 'Teaching published!')
+          : 'Saved locally as a personal prayer';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(savedMsg),
+          backgroundColor: AppColors.primaryGreen,
         ),
-        backgroundColor: AppColors.primaryGreen,
-      ),
-    );
-
-    Navigator.pop(context);
+      );
+      Navigator.pop(context);
+    }).catchError((e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to save. Please try again.'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    });
   }
 
   @override
@@ -192,6 +319,13 @@ class CreateNoteScreenState extends State<CreateNoteScreen>
             // Content Editor
             _buildContentEditor(),
             SizedBox(height: 20),
+            if (isPrayerMode) _buildCreateSessionToggle(),
+            if (isPrayerMode && createAsSession) ...[
+              SizedBox(height: 12),
+              _buildSchedulePicker(),
+              SizedBox(height: 12),
+              _buildPrayerPointsEditor(),
+            ],
             
             // Scripture Reference
             if (showScriptureField) _buildScriptureField(),
@@ -305,6 +439,114 @@ class CreateNoteScreenState extends State<CreateNoteScreen>
             ),
           ),
         ),
+      ],
+    );
+  }
+
+  Widget _buildCreateSessionToggle() {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.lightGrey),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: const [
+                Text('Create as Session', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                SizedBox(height: 4),
+                Text('Schedule this prayer and add multiple prayer points', style: TextStyle(color: Colors.grey)),
+              ],
+            ),
+          ),
+          Switch(
+            value: createAsSession,
+            onChanged: (v) => setState(() => createAsSession = v),
+            activeColor: AppColors.primaryBlue,
+          )
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSchedulePicker() {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.lightGrey),
+      ),
+      child: ListTile(
+        title: const Text('Scheduled Time'),
+        subtitle: Text(DateFormat('MMM dd, yyyy - hh:mm a').format(_scheduledTime)),
+        trailing: const Icon(Icons.schedule),
+        onTap: _pickScheduledTime,
+      ),
+    );
+  }
+
+  Widget _buildPrayerPointsEditor() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Prayer Points', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+        const SizedBox(height: 8),
+        ...List.generate(_pointControllers.length, (index) {
+          return Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppColors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.lightGrey),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _pointControllers[index],
+                        decoration: InputDecoration(
+                          labelText: 'Prayer Point ${index + 1}',
+                          border: const OutlineInputBorder(),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    if (_pointControllers.length > 1)
+                      IconButton(
+                        icon: const Icon(Icons.remove_circle, color: Colors.red),
+                        onPressed: () => _removePrayerPointField(index),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: _pointScripturesControllers[index],
+                  decoration: const InputDecoration(
+                    labelText: 'Scriptures (comma separated)',
+                    hintText: 'e.g., John 3:16, Psalm 23:1-6',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: TextButton.icon(
+            onPressed: _addPrayerPointField,
+            icon: const Icon(Icons.add),
+            label: const Text('Add Prayer Point'),
+          ),
+        )
       ],
     );
   }
