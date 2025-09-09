@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "572278554893",
+    "project_id": "prayoo-a02ce",
+    "storage_bucket": "prayoo-a02ce.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:572278554893:android:898952fd2e51b2efaa3044",
+        "android_client_info": {
+          "package_name": "com.zowesoft.prayoo"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAsRoye1Vxw1R60rovuhAi9qoacy0MpZiI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
