@@ -5,7 +5,6 @@ import 'package:prayoo/services/session_service.dart';
 import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 import 'package:prayoo/widgets/participant_options_bottom_sheet.dart';
 import 'package:prayoo/services/supabase_service.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_quill/flutter_quill.dart' as quill;
 
 class SessionPage extends StatefulWidget {

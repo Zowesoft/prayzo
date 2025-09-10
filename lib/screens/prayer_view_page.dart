@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_quill/flutter_quill.dart' as quill;
 import 'package:prayoo/providers/session_provider.dart';
 import 'package:prayoo/services/supabase_service.dart';
 import 'package:prayoo/utils/colors.dart';

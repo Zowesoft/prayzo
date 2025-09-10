@@ -28,6 +28,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
+    // Redirect unauthenticated users to /login
+    final uid = SupabaseService.client.auth.currentUser?.id;
+    if (uid == null) {
+      // Defer navigation to next event loop to avoid calling Navigator during build
+      Future.microtask(() {
+        if (mounted) Navigator.pushReplacementNamed(context, '/login');
+      });
+    }
     _loadProfileAndSubscribe();
   }
 
@@ -512,12 +520,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   style: TextStyle(color: Colors.black54))),
         );
       case 2:
-        return const Padding(
-          padding: EdgeInsets.symmetric(vertical: 40),
-          child: Center(
-              child: Text('Stats coming soon!',
-                  style: TextStyle(color: Colors.black54))),
-        );
+        return _buildFollowingOrganizationsSection();
       default:
         return _buildActivityList();
     }
@@ -540,6 +543,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
             onPressed: () => _showEditProfile(context),
           ),
           IconButton(
+            icon: const Icon(Icons.apartment),
+            tooltip: 'Create organization',
+            onPressed: _showCreateOrganization,
+          ),
+          IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () async {
               await context.read<AuthProvider>().signOut();
@@ -557,10 +565,138 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   _buildProfileHeader(),
                   _buildTabBar(),
                   _buildTabContent(),
+                  const SizedBox(height: 16),
+                  _buildFollowingOrganizationsSection(),
                   const SizedBox(height: 24),
                 ],
               ),
             ),
+    );
+  }
+
+  Widget _buildFollowingOrganizationsSection() {
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      future: context.read<AuthProvider>().getFollowingOrganizations(),
+      builder: (context, snap) {
+        if (snap.connectionState == ConnectionState.waiting) {
+          return const Center(child: Padding(
+            padding: EdgeInsets.all(16.0),
+            child: CircularProgressIndicator(),
+          ));
+        }
+        final items = snap.data ?? const [];
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16.0),
+              child: Text('Following Organizations', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            ),
+            const SizedBox(height: 8),
+            if (items.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16.0),
+                child: Text('You are not following any organizations yet.'),
+              )
+            else
+              ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: items.length,
+                itemBuilder: (context, i) {
+                  final row = items[i];
+                  final orgId = row['org_id']?.toString() ?? '';
+                  final org = (row['organizations'] as Map?)?.cast<String, dynamic>();
+                  final name = org?['name']?.toString() ?? 'Organization';
+                  final logo = org?['logo_url']?.toString();
+                  return ListTile(
+                    leading: CircleAvatar(
+                      backgroundImage: (logo != null && logo.isNotEmpty) ? NetworkImage(logo) : null,
+                      child: (logo == null || logo.isEmpty) ? const Icon(Icons.apartment) : null,
+                    ),
+                    title: Text(name),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => Navigator.pushNamed(context, '/organizations/$orgId'),
+                  );
+                },
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showCreateOrganization() {
+    final nameCtrl = TextEditingController();
+    final descCtrl = TextEditingController();
+    final logoCtrl = TextEditingController();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) {
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + 16,
+            left: 16,
+            right: 16,
+            top: 16,
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('Create Organization', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: nameCtrl,
+                  decoration: const InputDecoration(labelText: 'Name', border: OutlineInputBorder()),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: descCtrl,
+                  maxLines: 3,
+                  decoration: const InputDecoration(labelText: 'Description', border: OutlineInputBorder()),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: logoCtrl,
+                  decoration: const InputDecoration(labelText: 'Logo URL (optional)', border: OutlineInputBorder()),
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton.icon(
+                  onPressed: () async {
+                    final uid = SupabaseService.client.auth.currentUser?.id;
+                    if (uid == null) return;
+                    try {
+                      await SupabaseService.client.from('organizations').insert({
+                        'owner_id': uid,
+                        'name': nameCtrl.text.trim(),
+                        'description': descCtrl.text.trim(),
+                        if (logoCtrl.text.trim().isNotEmpty) 'logo_url': logoCtrl.text.trim(),
+                        'created_at': DateTime.now().toIso8601String(),
+                      });
+                      if (mounted) Navigator.pop(ctx);
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Organization created')));
+                      }
+                    } catch (e) {
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: $e')));
+                      }
+                    }
+                  },
+                  icon: const Icon(Icons.check),
+                  label: const Text('Create'),
+                )
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

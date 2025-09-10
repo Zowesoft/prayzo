@@ -89,7 +89,12 @@ class PrayerCardState extends State<PrayerCard>
                 CircleAvatar(
                   radius: 20,
                   backgroundColor: AppColors.lightBlue,
-                  child: Icon(Icons.person, color: AppColors.primaryBlue),
+                  backgroundImage: (widget.prayer.authorAvatar.isNotEmpty)
+                      ? NetworkImage(widget.prayer.authorAvatar)
+                      : null,
+                  child: (widget.prayer.authorAvatar.isEmpty)
+                      ? Icon(Icons.person, color: AppColors.primaryBlue)
+                      : null,
                 ),
                 SizedBox(width: 12),
                 Expanded(

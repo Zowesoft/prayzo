@@ -1,5 +1,5 @@
 class AppConstants {
-  static const String appName = 'PrayerVerse';
+  static const String appName = 'Prayoo';
   static const double defaultPadding = 16.0;
   static const double cardRadius = 12.0;
   static const double buttonRadius = 8.0;
