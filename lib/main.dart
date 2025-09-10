@@ -10,6 +10,7 @@ import 'screens/notes_screen.dart';
 import 'screens/bible_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/login_page.dart';
+import 'screens/register_page.dart';
 import 'screens/prayer_view_page.dart';
 import 'utils/colors.dart';
 import 'widgets/bottom_nav_bar.dart';
@@ -18,6 +19,9 @@ import 'services/notification_service.dart';
 import 'config/env.dart';
 import 'screens/notifications_screen.dart';
 import 'package:flutter_quill/flutter_quill.dart';
+import 'screens/organization_page.dart';
+import 'services/local_notifications.dart';
+import 'utils/constants.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -26,6 +30,8 @@ void main() async {
     anonKey: AppEnv.supabaseAnonKey,
   );
   await NotificationService.initialize();
+  // Initialize local notifications plugin early to avoid MissingPluginException
+  await LocalNotifications.initialize();
   runApp(PrayooApp());
 }
 
@@ -41,7 +47,7 @@ class PrayooApp extends StatelessWidget {
           ChangeNotifierProvider(create: (_) => ConnectionProvider()),
         ],
         child: MaterialApp(
-          title: 'Prayoo',
+          title: AppConstants.appName,
           localizationsDelegates: const [
             GlobalMaterialLocalizations.delegate,
             GlobalCupertinoLocalizations.delegate,
@@ -73,16 +79,31 @@ class PrayooApp extends StatelessWidget {
           routes: {
             '/home': (context) => HomePage(),
             '/session': (context) {
-              final args = ModalRoute.of(context)!.settings.arguments as PrayerSession;
+              final args =
+                  ModalRoute.of(context)!.settings.arguments as PrayerSession;
               return SessionPage(session: args);
             },
             '/profile': (context) => ProfileScreen(),
             '/login': (context) => const LoginPage(),
+            '/register': (context) => const RegisterPage(),
             '/prayer': (context) {
-              final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+              final args = ModalRoute.of(context)!.settings.arguments
+                  as Map<String, dynamic>;
               return PrayerViewPage(prayer: args);
             },
             '/notifications': (context) => const NotificationsScreen(),
+          },
+          onGenerateRoute: (settings) {
+            final uri = Uri.parse(settings.name ?? '');
+            if (uri.pathSegments.length == 2 &&
+                uri.pathSegments.first == 'organizations') {
+              final orgId = uri.pathSegments[1];
+              return MaterialPageRoute(
+                builder: (_) => OrganizationPage(orgId: orgId),
+                settings: settings,
+              );
+            }
+            return null;
           },
           debugShowCheckedModeBanner: false,
         ));

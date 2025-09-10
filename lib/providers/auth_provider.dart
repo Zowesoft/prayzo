@@ -75,13 +75,14 @@ class AuthProvider with ChangeNotifier {
       );
       final u = res.user;
       if (u != null) {
-        // Only upsert profile if we already have an authenticated session.
-        // If email confirmation is enabled, there may be no session yet and RLS will block writes.
+        // Insert or upsert user profile row with defaults
         if (_sb.auth.currentUser != null) {
           await _sb.from('profiles').upsert({
             'id': u.id,
             'email': email,
             'display_name': displayName,
+            'role': 'Member',
+            'created_at': DateTime.now().toIso8601String(),
             'is_online': true,
             'last_seen': DateTime.now().toIso8601String(),
           });
@@ -124,11 +125,69 @@ class AuthProvider with ChangeNotifier {
     final uid = _user?.uid;
     if (uid == null) return [];
     // Map following via table 'following'
-    final res = await _sb.from('following').select('followee_id').eq('follower_id', uid);
-    if (res is List) {
-      return res.map((e) => e['followee_id'].toString()).toList();
-    }
-    return [];
+    final List<dynamic> res = await _sb
+        .from('following')
+        .select('followee_id')
+        .eq('follower_id', uid);
+    return res.map((e) => e['followee_id'].toString()).toList();
+  }
+
+  /// Returns only the IDs the current user follows that are organizations (profiles.is_org == true)
+  Future<List<String>> getFollowingOrganizationIds() async {
+    final all = await getFollowingIds();
+    if (all.isEmpty) return [];
+    final List<dynamic> rows = await _sb
+        .from('profiles')
+        .select('id')
+        .inFilter('id', all)
+        .eq('is_org', true);
+    return rows.map((e) => e['id'].toString()).toList();
+  }
+
+  /// Follow an organization by its profile id
+  Future<void> followOrganization(String orgId) async {
+    final uid = _user?.uid;
+    if (uid == null) return;
+    await _sb.from('organization_followers').upsert({
+      'user_id': uid,
+      'org_id': orgId,
+      'created_at': DateTime.now().toIso8601String(),
+    });
+  }
+
+  /// Unfollow an organization by its profile id
+  Future<void> unfollowOrganization(String orgId) async {
+    final uid = _user?.uid;
+    if (uid == null) return;
+    await _sb
+        .from('organization_followers')
+        .delete()
+        .eq('user_id', uid)
+        .eq('org_id', orgId);
+  }
+
+  /// Returns organizations the current user follows
+  Future<List<Map<String, dynamic>>> getFollowingOrganizations() async {
+    final uid = _user?.uid;
+    if (uid == null) return [];
+    final List<dynamic> rows = await _sb
+        .from('organization_followers')
+        .select('org_id, organizations(name, description, logo_url)')
+        .eq('user_id', uid);
+    return rows.map((e) => Map<String, dynamic>.from(e)).toList();
+  }
+
+  /// Check if current user follows a specific organization
+  Future<bool> isFollowingOrganization(String orgId) async {
+    final uid = _user?.uid;
+    if (uid == null) return false;
+    final List<dynamic> rows = await _sb
+        .from('organization_followers')
+        .select('org_id')
+        .eq('user_id', uid)
+        .eq('org_id', orgId)
+        .limit(1);
+    return rows.isNotEmpty;
   }
 
   String _friendlyMessage(Object e) {

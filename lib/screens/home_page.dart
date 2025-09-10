@@ -1,12 +1,16 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:prayoo/providers/auth_provider.dart';
 import 'package:prayoo/providers/session_provider.dart';
+import 'package:prayoo/utils/constants.dart';
 import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:prayoo/services/local_storage_service.dart';
 import 'package:prayoo/models/prayer.dart';
 import 'package:prayoo/widgets/prayer_card.dart';
 import 'package:prayoo/services/supabase_service.dart';
+import 'package:prayoo/services/notification_service.dart';
+import 'package:prayoo/services/local_notifications.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -20,7 +24,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   final LocalStorageService _local = LocalStorageService();
   List<Map<String, dynamic>> _localPrayers = [];
   List<PrayerSession> _downloadedSessions = [];
-  List<String> _followingIds = [];
+  List<String> _followingOrgIds = [];
+  final Map<String, Timer> _reminderTimers = {};
 
   @override
   void initState() {
@@ -28,6 +33,26 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     _tabController = TabController(length: 4, vsync: this);
     _loadLocalData();
     _loadFollowingIfLoggedIn();
+  }
+
+  void _setReminder(PrayerSession session) async {
+    // Schedule a system local notification 15 minutes before the session.
+    final reminderTime = session.scheduledTime.subtract(const Duration(minutes: 15));
+
+    // Optional: track last scheduled in-memory to avoid duplicates in this run
+    _reminderTimers[session.id]?.cancel();
+
+    await LocalNotifications.scheduleReminder(
+      id: session.id.hashCode,
+      title: 'Upcoming session',
+      body: '${session.title} starts in 15 minutes',
+      scheduledDate: reminderTime,
+    );
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Reminder scheduled (15 mins before)')),
+    );
   }
 
   // ===== Auth-aware Home body =====
@@ -95,8 +120,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   Future<void> _loadFollowingIfLoggedIn() async {
     final auth = context.read<AuthProvider>();
     if (auth.isLoggedIn) {
-      final ids = await auth.getFollowingIds();
-      if (mounted) setState(() => _followingIds = ids);
+      final ids = await auth.getFollowingOrganizationIds();
+      if (mounted) setState(() => _followingOrgIds = ids);
     }
   }
 
@@ -132,7 +157,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       pinned: true,
       flexibleSpace: FlexibleSpaceBar(
         title: Text(
-          'Prayoo',
+          AppConstants.appName,
           textAlign: TextAlign.center,
           style: TextStyle(
             fontWeight: FontWeight.bold,
@@ -150,9 +175,42 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         ),
       ),
       actions: [
-        IconButton(
-          icon: Icon(Icons.notifications),
-          onPressed: () => _showNotifications(),
+        StreamBuilder<int>(
+          stream: NotificationService.unreadCountStream,
+          builder: (context, snap) {
+            final count = snap.data ?? 0;
+            return Stack(
+              clipBehavior: Clip.none,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.notifications),
+                  onPressed: () => _showNotifications(),
+                ),
+                if (count > 0)
+                  Positioned(
+                    right: 8,
+                    top: 8,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.red,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      constraints: const BoxConstraints(minWidth: 20),
+                      child: Text(
+                        count > 99 ? '99+' : count.toString(),
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            );
+          },
         ),
         Builder(builder: (context) {
           final auth = context.watch<AuthProvider>();
@@ -330,10 +388,10 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           ),
           Consumer<SessionProvider>(
             builder: (context, sessionProvider, child) {
-              final items = _followingIds.isEmpty
+              final items = _followingOrgIds.isEmpty
                   ? sessionProvider.upcomingSessions
                   : sessionProvider.upcomingSessions
-                      .where((s) => _followingIds.contains(s.organizerId))
+                      .where((s) => _followingOrgIds.contains(s.organizerId))
                       .toList();
               return ListView.builder(
                 shrinkWrap: true,
@@ -369,21 +427,29 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             child: Text('No featured prayers yet.'),
           );
         }
-        return ListView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: items.length,
-          itemBuilder: (context, index) {
-            final p = items[index];
-            return GestureDetector(
-              onTap: () => Navigator.pushNamed(context, '/prayer', arguments: {
-                'title': p.title,
-                'content': p.content,
-                'created_at': p.createdAt.millisecondsSinceEpoch,
-              }),
-              child: PrayerCard(prayer: p),
-            );
-          },
+        // Horizontal carousel of featured PrayerCards
+        return SizedBox(
+          height: 260,
+          child: ListView.separated(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            scrollDirection: Axis.horizontal,
+            itemBuilder: (context, index) {
+              final p = items[index];
+              return SizedBox(
+                width: 320,
+                child: GestureDetector(
+                  onTap: () => Navigator.pushNamed(context, '/prayer', arguments: {
+                    'title': p.title,
+                    'content': p.content,
+                    'created_at': p.createdAt.millisecondsSinceEpoch,
+                  }),
+                  child: PrayerCard(prayer: p),
+                ),
+              );
+            },
+            separatorBuilder: (_, __) => const SizedBox(width: 12),
+            itemCount: items.length,
+          ),
         );
       },
     );
@@ -430,21 +496,21 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
   Future<List<Prayer>> _fetchFeaturedPrayers() async {
     final sb = SupabaseService.client;
-    final authorIds = _followingIds;
-    var q = sb
-        .from('prayers')
-        .select()
-        .order('created_at', ascending: false)
-        .limit(10);
-    if (authorIds.isNotEmpty) {
-      q = sb
-          .from('prayers')
-          .select()
-          .inFilter('author_id', authorIds.take(10).toList())
-          .order('created_at', ascending: false)
-          .limit(10);
-    }
-    final List<dynamic> res = await q;
+    final orgIds = _followingOrgIds;
+    // If the user follows organizations, feature prayers from those orgs.
+    // Otherwise, show latest prayers (optionally only those with organization_id not null).
+    final List<dynamic> res = orgIds.isNotEmpty
+        ? await sb
+            .from('prayers')
+            .select('*, organizations(name, logo_url)')
+            .inFilter('organization_id', orgIds.take(25).toList())
+            .order('created_at', ascending: false)
+            .limit(10)
+        : await sb
+            .from('prayers')
+            .select('*, organizations(name, logo_url)')
+            .order('created_at', ascending: false)
+            .limit(10);
     return res
         .map((e) => _prayerFromMap(Map<String, dynamic>.from(e)))
         .toList();
@@ -469,8 +535,11 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     return Prayer(
       id: data['id']?.toString() ?? '',
       title: data['title']?.toString() ?? '',
-      author: '',
-      authorRole: '',
+      // If this prayer is from an organization and joined, display org as author.
+      author: (data['organizations'] is Map && (data['organizations']['name']?.toString().isNotEmpty ?? false))
+          ? data['organizations']['name'].toString()
+          : '',
+      authorRole: (data['organizations'] is Map) ? 'Organization' : '',
       content: (data['description'] ?? data['content'])?.toString() ?? '',
       scriptureReferences: (data['scriptures'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? const [],
       tags: (data['tags'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? const [],
@@ -479,7 +548,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       createdAt: DateTime.tryParse(data['created_at']?.toString() ?? '') ?? DateTime.now(),
       videoUrl: null,
       isLive: false,
-      authorAvatar: '',
+      authorAvatar: (data['organizations'] is Map && (data['organizations']['logo_url']?.toString().isNotEmpty ?? false))
+          ? data['organizations']['logo_url'].toString()
+          : '',
     );
   }
 
@@ -546,6 +617,10 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   }
 
   Widget _buildPrayerSessionCard(PrayerSession session) {
+    final now = DateTime.now();
+    final diff = session.scheduledTime.difference(now);
+    final canJoin = diff.inMinutes <= 15; // allow joining from 15 minutes before
+
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       padding: EdgeInsets.all(16),
@@ -575,7 +650,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 ),
               ),
               ElevatedButton(
-                onPressed: () => _joinSession(session),
+                onPressed: canJoin ? () => _joinSession(session) : null,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.blue,
                   minimumSize: Size(60, 32),
@@ -596,12 +671,23 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             ),
           ),
           SizedBox(height: 4),
-          Text(
-            '${session.participantCount} joining',
-            style: TextStyle(
-              color: Colors.blue,
-              fontSize: 12,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                '${session.participantCount} joining',
+                style: TextStyle(
+                  color: Colors.blue,
+                  fontSize: 12,
+                ),
+              ),
+              if (!canJoin)
+                OutlinedButton.icon(
+                  onPressed: () => _setReminder(session),
+                  icon: const Icon(Icons.notifications, size: 16),
+                  label: const Text('Remind me'),
+                ),
+            ],
           ),
         ],
       ),
@@ -632,6 +718,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   }
 
   void _showNotifications() {
-    // Implement notifications
+    Navigator.pushNamed(context, '/notifications');
   }
 }

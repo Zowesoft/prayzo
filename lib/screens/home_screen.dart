@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:prayoo/utils/constants.dart';
 import '../utils/colors.dart';
 import '../utils/sample_data.dart';
 import '../widgets/video_player_widget.dart';
@@ -55,7 +56,7 @@ class HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       backgroundColor: AppColors.lightGrey,
       appBar: AppBar(
-        title: Text('Prayoo'),
+        title: Text(AppConstants.appName),
         actions: [
           Stack(
             children: [
