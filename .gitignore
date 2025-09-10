@@ -46,3 +46,5 @@ app.*.map.json
 
 # EFLfT2wj9EDy5ajw
 /lib/config/env.dart
+# the ui of the sessionPage is not clean, it should have a this ui in the image, we display the active prayer point on the big banner and show the other prayer point s on the session under it
+
