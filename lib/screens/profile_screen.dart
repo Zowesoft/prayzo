@@ -16,7 +16,7 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  final int _currentTab = 3;
+  // final int _currentTab = 3;
   int _selectedTab = 0;
 
   Map<String, dynamic>? _profile; // live profile row

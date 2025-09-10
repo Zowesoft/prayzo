@@ -22,7 +22,6 @@ class CreateNoteScreenState extends State<CreateNoteScreen>
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _contentController = TextEditingController();
   late AnimationController _toggleController;
-  late Animation<double> _toggleAnimation;
   // Prayer points for prayers
   DateTime _scheduledTime = DateTime.now().add(const Duration(hours: 1));
   final List<TextEditingController> _pointControllers = [
@@ -74,13 +73,6 @@ class CreateNoteScreenState extends State<CreateNoteScreen>
       duration: Duration(milliseconds: 300),
       vsync: this,
     );
-    _toggleAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _toggleController,
-      curve: Curves.easeInOut,
-    ));
   }
 
   @override
@@ -524,9 +516,6 @@ class CreateNoteScreenState extends State<CreateNoteScreen>
     );
   }
 
-  Widget _buildCreateSessionToggle() {
-    return const SizedBox.shrink();
-  }
 
   Widget _buildSchedulePicker() {
     return Container(

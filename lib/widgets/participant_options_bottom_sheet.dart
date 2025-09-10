@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:prayoo/services/supabase_service.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ParticipantOptionsBottomSheet extends StatelessWidget {
   final String sessionId;

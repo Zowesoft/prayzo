@@ -17,8 +17,8 @@ class AuthProvider with ChangeNotifier {
   AuthProvider() {
     _sb.auth.onAuthStateChange.listen((data) {
       final session = data.session;
-      if (session != null && session.user != null) {
-        final u = session.user!;
+      if (session != null) {
+        final u = session.user;
         _user = AppUser(
           uid: u.id,
           displayName: u.userMetadata?['display_name']?.toString(),

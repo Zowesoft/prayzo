@@ -25,6 +25,8 @@ class _SessionPageState extends State<SessionPage> {
   bool _isVideoEnabled = false;
   bool _isAdmin = false;
   final List<int> _remoteUsers = [];
+  bool _showScripture = false;
+  String? _activeScripture;
   
   @override
   void initState() {
@@ -229,43 +231,147 @@ class _SessionPageState extends State<SessionPage> {
       (point) => point.isActive,
       orElse: () => session.prayerPoints.first,
     );
-    
-    return Container(
-      padding: EdgeInsets.all(32),
+    final others = session.prayerPoints.where((p) => p.id != currentPoint.id).toList()
+      ..sort((a, b) => a.order.compareTo(b.order));
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Icon(
-            Icons.favorite,
-            size: 64,
-            color: Colors.white70,
-          ),
-          SizedBox(height: 24),
-          Text(
-            'Prayer ${currentPoint.order + 1}',
-            style: TextStyle(
-              color: Colors.white70,
-              fontSize: 18,
-              fontWeight: FontWeight.w500,
+          // Active prayer banner
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Colors.purple.shade800,
+                  Colors.blue.shade600,
+                ],
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.25),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                // Pill label
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    'Prayer ${currentPoint.order + 1}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                // Main content (toggle between prayer content and scripture view)
+                _showScripture
+                    ? _buildScriptureView()
+                    : _buildPointRichContent(currentPoint),
+                const SizedBox(height: 16),
+                if (currentPoint.assignedTo != null)
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.mic, color: Colors.white70, size: 16),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Led by: ${_getParticipantName(session, currentPoint.assignedTo!)}',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.85),
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                const SizedBox(height: 12),
+                // Scripture pills row
+                _buildScriptureChips(currentPoint),
+                if (_showScripture)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 12.0),
+                    child: OutlinedButton.icon(
+                      onPressed: () => setState(() {
+                        _showScripture = false;
+                        _activeScripture = null;
+                      }),
+                      icon: const Icon(Icons.keyboard_return, color: Colors.white),
+                      label: const Text('Return to Prayer', style: TextStyle(color: Colors.white)),
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(color: Colors.white.withValues(alpha: 0.5)),
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ),
-          SizedBox(height: 16),
-          _buildPointRichContent(currentPoint),
-          SizedBox(height: 32),
-          if (currentPoint.assignedTo != null)
-            Container(
-              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.blue.withValues(alpha:0.2),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(
-                'Led by: ${_getParticipantName(session, currentPoint.assignedTo!)}',
-                style: TextStyle(
-                  color: Colors.blue.shade200,
-                  fontSize: 14,
-                ),
-              ),
+
+          const SizedBox(height: 24),
+          // Other prayer points list
+          Text(
+            'Other Prayer Points',
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.9),
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 12),
+          if (others.isEmpty)
+            Text(
+              'No other points',
+              style: TextStyle(color: Colors.white70),
+            )
+          else
+            ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: others.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 8),
+              itemBuilder: (context, index) {
+                final p = others[index];
+                return Container(
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade900,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey.shade800),
+                  ),
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    title: Text(
+                      'Prayer ${p.order + 1}',
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                    ),
+                    subtitle: Text(
+                      p.content,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(color: Colors.white70),
+                    ),
+                    trailing: _isAdmin
+                        ? TextButton(
+                            onPressed: () => _setActivePrayerPoint(index: p.order),
+                            child: const Text('Set Active'),
+                          )
+                        : null,
+                  ),
+                );
+              },
             ),
         ],
       ),
@@ -584,6 +690,66 @@ class _SessionPageState extends State<SessionPage> {
     final nextIndex = (currentIndex + 1) % widget.session.prayerPoints.length;
     
     await _sessionService.updatePrayerPoint(widget.session.id, nextIndex);
+  }
+  
+  void _setActivePrayerPoint({required int index}) async {
+    // Set a specific point active by its order/index
+    await _sessionService.updatePrayerPoint(widget.session.id, index);
+  }
+
+  Widget _buildScriptureChips(PrayerPoint point) {
+    final scriptures = point.scriptures ?? [];
+    if (scriptures.isEmpty) return const SizedBox.shrink();
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: scriptures.map((ref) {
+          final selected = _showScripture && _activeScripture == ref;
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4.0),
+            child: ChoiceChip(
+              label: Text(ref, style: TextStyle(color: selected ? Colors.black : Colors.white)),
+              selected: selected,
+              selectedColor: Colors.white,
+              backgroundColor: Colors.white.withValues(alpha: 0.15),
+              onSelected: (_) {
+                setState(() {
+                  _activeScripture = ref;
+                  _showScripture = true;
+                });
+              },
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildScriptureView() {
+    final ref = _activeScripture ?? '';
+    return Column(
+      children: [
+        Text(
+          ref,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Scripture display',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.85),
+            fontSize: 14,
+          ),
+        ),
+      ],
+    );
   }
   
   void _toggleGroupSpeaking() async {
