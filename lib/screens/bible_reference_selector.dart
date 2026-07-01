@@ -3,6 +3,11 @@ import '../repository/bible_repository.dart';
 import '../models/bible_verse.dart';
 import '../utils/colors.dart';
 
+export '../models/bible_verse.dart' show getBookNameById, getBookIdByName;
+
+// Export the bibleBookNames constant
+export 'bible_reference_selector.dart' show bibleBookNames;
+
 /// Map of numeric Bible book ids (as stored in DB) to readable names.
 /// NOTE: ensure these ids match the DB schema.
 const Map<int, String> bibleBookNames = {
@@ -84,7 +89,7 @@ class BookListScreen extends StatelessWidget {
     final repo = BibleRepository(translation: translation);
     return Scaffold(
       appBar: AppBar(title: const Text('Select Book')),
-      body: FutureBuilder<List<int>>( 
+      body: FutureBuilder<List<int>>(
         future: repo.getBookIds(),
         builder: (context, snapshot) {
           if (!snapshot.hasData) {
@@ -124,7 +129,11 @@ class ChapterGridScreen extends StatelessWidget {
   final String translation;
   final int bookId;
   final String bookName;
-  const ChapterGridScreen({super.key, required this.translation, required this.bookId, required this.bookName});
+  const ChapterGridScreen(
+      {super.key,
+      required this.translation,
+      required this.bookId,
+      required this.bookName});
 
   @override
   Widget build(BuildContext context) {
@@ -145,19 +154,21 @@ class ChapterGridScreen extends StatelessWidget {
               childAspectRatio: 1,
               mainAxisSpacing: 8,
               crossAxisSpacing: 8,
-              children: chapters.map((ch) => _numberBox(context, ch, () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => VerseGridScreen(
-                      translation: translation,
-                      bookId: bookId,
-                      chapter: ch,
-                      bookName: bookName,
-                    ),
-                  ),
-                );
-              })).toList(),
+              children: chapters
+                  .map((ch) => _numberBox(context, ch, () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => VerseGridScreen(
+                              translation: translation,
+                              bookId: bookId,
+                              chapter: ch,
+                              bookName: bookName,
+                            ),
+                          ),
+                        );
+                      }))
+                  .toList(),
             ),
           );
         },
@@ -186,7 +197,12 @@ class VerseGridScreen extends StatelessWidget {
   final int bookId;
   final int chapter;
   final String bookName;
-  const VerseGridScreen({super.key, required this.translation, required this.bookId, required this.chapter, required this.bookName});
+  const VerseGridScreen(
+      {super.key,
+      required this.translation,
+      required this.bookId,
+      required this.chapter,
+      required this.bookName});
 
   @override
   Widget build(BuildContext context) {
@@ -207,20 +223,22 @@ class VerseGridScreen extends StatelessWidget {
               childAspectRatio: 1,
               mainAxisSpacing: 8,
               crossAxisSpacing: 8,
-              children: verses.map((v) => _numberBox(context, v, () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => ReaderScreen(
-                      translation: translation,
-                      bookId: bookId,
-                      bookName: bookName,
-                      chapter: chapter,
-                      verse: v,
-                    ),
-                  ),
-                );
-              })).toList(),
+              children: verses
+                  .map((v) => _numberBox(context, v, () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => ReaderScreen(
+                              translation: translation,
+                              bookId: bookId,
+                              bookName: bookName,
+                              chapter: chapter,
+                              verse: v,
+                            ),
+                          ),
+                        );
+                      }))
+                  .toList(),
             ),
           );
         },
@@ -250,15 +268,23 @@ class ReaderScreen extends StatelessWidget {
   final String bookName;
   final int chapter;
   final int verse;
-  const ReaderScreen({super.key, required this.translation, required this.bookId, required this.bookName, required this.chapter, required this.verse});
+  const ReaderScreen(
+      {super.key,
+      required this.translation,
+      required this.bookId,
+      required this.bookName,
+      required this.chapter,
+      required this.verse});
 
   @override
   Widget build(BuildContext context) {
     final repo = BibleRepository(translation: translation);
     return Scaffold(
       appBar: AppBar(title: Text('$bookName $chapter:$verse')),
-      body: FutureBuilder<List<BibleVerse>>( // show verse text
-        future: repo.searchVerses('book = ? AND chapter = ? AND verse = ?', [bookId, chapter, verse]),
+      body: FutureBuilder<List<BibleVerse>>(
+        // show verse text
+        future: repo.searchVerses(
+            'book = ? AND chapter = ? AND verse = ?', [bookId, chapter, verse]),
         builder: (context, snapshot) {
           if (!snapshot.hasData) {
             return const Center(child: CircularProgressIndicator());

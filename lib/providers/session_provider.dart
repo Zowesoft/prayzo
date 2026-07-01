@@ -263,7 +263,7 @@ class PrayerPoint {
   final String? assignedTo;
   final bool isActive;
   final dynamic contentDelta; // quill delta json
-  final List<String>? scriptures;
+  final List<String> scriptures;
 
   PrayerPoint({
     required this.id,
@@ -272,7 +272,7 @@ class PrayerPoint {
     this.assignedTo,
     required this.isActive,
     this.contentDelta,
-    this.scriptures,
+    this.scriptures = const [],
   });
 
   factory PrayerPoint.fromMap(Map<String, dynamic> map) {
@@ -283,7 +283,9 @@ class PrayerPoint {
       assignedTo: map['assignedTo'],
       isActive: map['isActive'] ?? false,
       contentDelta: map['content_delta'],
-      scriptures: (map['scriptures'] as List?)?.map((e) => e.toString()).toList(),
+      scriptures: (map['scriptures'] is List)
+          ? List<String>.from((map['scriptures'] as List).map((e) => e.toString()))
+          : const [],
     );
   }
 }

@@ -6,6 +6,7 @@ import 'package:prayoo/services/prayer_service.dart';
 // import 'package:prayoo/providers/session_provider.dart';
 import 'package:intl/intl.dart';
 import '../repository/bible_repository.dart';
+import 'bible_reference_selector.dart';
 import '../models/bible_verse.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 
@@ -151,7 +152,7 @@ class CreateNoteScreenState extends State<CreateNoteScreen>
                     items: books
                         .map((b) => DropdownMenuItem<int>(
                               value: b,
-                              child: Text(bibleBookNames[b]),
+                              child: Text(getBookNameById(b)),
                             ))
                         .toList(),
                     onChanged: (v) {
@@ -226,7 +227,7 @@ class CreateNoteScreenState extends State<CreateNoteScreen>
                           selectedChapter != null &&
                           selectedVerse != null) {
                         final ref =
-                            '${bibleBookNames[selectedBookId!]} $selectedChapter:$selectedVerse';
+                            '${getBookNameById(selectedBookId!)} $selectedChapter:$selectedVerse';
                         Navigator.pop(ctx, ref);
                       } else {
                         Navigator.pop(ctx, null);

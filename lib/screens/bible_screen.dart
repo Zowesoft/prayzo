@@ -3,6 +3,7 @@ import 'dart:async';
 import '../utils/database_helper.dart';
 import '../utils/colors.dart';
 import '../repository/bible_repository.dart';
+import 'bible_reference_selector.dart' show bibleBookNames;
 import '../models/bible_verse.dart';
 import '../widgets/bible_verse_card.dart';
 
@@ -35,7 +36,10 @@ class BibleScreenState extends State<BibleScreen>
   List<int> _availableChapters = [];
   List<int> _availableVerses = [];
 
-  List<String> bibleBookNames = [];
+  // Get book names using the centralized function
+  List<String> get bookNames => bibleBookNames.entries
+      .map((e) => getBookNameById(e.key))
+      .toList();
 
   @override
   void initState() {
@@ -48,12 +52,11 @@ class BibleScreenState extends State<BibleScreen>
   }
 
   Future<void> _loadBookNames() async {
-    final books = await _bibleRepository.getBooks();
+    // No need to load book names as they are now statically defined in bible_reference_selector.dart
     setState(() {
-      bibleBookNames = books;
-      // Optionally reset selectedBook if needed:
-      if (books.isNotEmpty && !books.contains(selectedBook)) {
-        selectedBook = books.first;
+      // Optionally reset selectedBook if needed
+      if (bibleBookNames.isNotEmpty && !bookNames.contains(selectedBook)) {
+        selectedBook = bookNames.first;
       }
     });
   }
@@ -425,14 +428,15 @@ class BibleScreenState extends State<BibleScreen>
         ),
         itemCount: bibleBookNames.length,
         itemBuilder: (context, index) {
-          final book = bibleBookNames[index];
+          final bookId = bibleBookNames.keys.elementAt(index);
+          final bookName = getBookNameById(bookId);
           return GestureDetector(
             onTap: () {
               setState(() {
-                selectedBook = book;
+                selectedBook = bookName;
                 _selectedView = BibleContentView.chapters;
               });
-              _loadChaptersForBook(book);
+              _loadChaptersForBook(bookName);
             },
             child: Container(
               decoration: BoxDecoration(
@@ -448,7 +452,7 @@ class BibleScreenState extends State<BibleScreen>
               ),
               child: Center(
                 child: Text(
-                  book,
+                  bookName,
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     color: AppColors.darkGrey,

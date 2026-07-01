@@ -1,17 +1,33 @@
-const List<String> bibleBookNames = [
-  '', // 0-index unused for 1-based book numbers
-  'Genesis', 'Exodus', 'Leviticus', 'Numbers', 'Deuteronomy',
-  'Joshua', 'Judges', 'Ruth', '1 Samuel', '2 Samuel', '1 Kings', '2 Kings',
-  '1 Chronicles', '2 Chronicles', 'Ezra', 'Nehemiah', 'Esther', 'Job',
-  'Psalms', 'Proverbs', 'Ecclesiastes', 'Song of Solomon', 'Isaiah', 'Jeremiah',
-  'Lamentations', 'Ezekiel', 'Daniel', 'Hosea', 'Joel', 'Amos', 'Obadiah',
-  'Jonah', 'Micah', 'Nahum', 'Habakkuk', 'Zephaniah', 'Haggai', 'Zechariah',
-  'Malachi', 'Matthew', 'Mark', 'Luke', 'John', 'Acts', 'Romans', '1 Corinthians',
-  '2 Corinthians', 'Galatians', 'Ephesians', 'Philippians', 'Colossians',
-  '1 Thessalonians', '2 Thessalonians', '1 Timothy', '2 Timothy', 'Titus',
-  'Philemon', 'Hebrews', 'James', '1 Peter', '2 Peter', '1 John', '2 John',
-  '3 John', 'Jude', 'Revelation'
-];
+import '../screens/bible_reference_selector.dart';
+
+// Get book name by ID using the centralized bibleBookNames map
+String getBookNameById(int bookId) {
+  return bibleBookNames[bookId] ?? 'Unknown Book';
+}
+
+// Get book ID by name (case-insensitive)
+int? getBookIdByName(String bookName) {
+  if (bookName.isEmpty) return null;
+  
+  final normalized = bookName.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
+  
+  // First try exact match
+  for (final entry in bibleBookNames.entries) {
+    if (entry.value.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '') == normalized) {
+      return entry.key;
+    }
+  }
+  
+  // Then try partial match (e.g., 'Gen' for 'Genesis')
+  for (final entry in bibleBookNames.entries) {
+    final entryName = entry.value.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
+    if (entryName.startsWith(normalized) || normalized.startsWith(entryName)) {
+      return entry.key;
+    }
+  }
+  
+  return null;
+}
 
 class BibleVerse {
   final String book;
@@ -29,11 +45,11 @@ class BibleVerse {
   factory BibleVerse.fromMap(Map<String, dynamic> map) {
     return BibleVerse(
       book: map['book'] is int
-        ? bibleBookNames[map['book']]
-        : map['book'].toString(),
-      chapter: map['chapter'],
-      verse: map['verse'],
-      text: map['text'],
+          ? getBookNameById(map['book'])
+          : map['book'].toString(),
+      chapter: map['chapter'] is int ? map['chapter'] : int.tryParse(map['chapter'].toString()) ?? 0,
+      verse: map['verse'] is int ? map['verse'] : int.tryParse(map['verse'].toString()) ?? 0,
+      text: map['text']?.toString() ?? '',
     );
   }
 
